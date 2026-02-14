@@ -22,6 +22,7 @@ export default function Footer() {
               <li><a href="#docs" className="text-gray-500 hover:text-cyan-400 transition-colors">Documentation</a></li>
               <li><a href="#playground" className="text-gray-500 hover:text-cyan-400 transition-colors">Playground</a></li>
               <li><a href="https://www.npmjs.com/package/shield-qr-styler" className="text-gray-500 hover:text-cyan-400 transition-colors">npm Package</a></li>
+              <li><a href="https://github.com/shieldqr/qr-styler" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-cyan-400 transition-colors">GitHub</a></li>
             </ul>
           </div>
 

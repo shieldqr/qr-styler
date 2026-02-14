@@ -32,7 +32,7 @@ export default function Header() {
               <span className="hidden sm:inline">npm</span>
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/shieldqr/qr-styler"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"

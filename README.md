@@ -6,7 +6,7 @@ Generate beautifully shaped, customizable QR codes as SVG. Framework-agnostic, w
 ![license](https://img.shields.io/npm/l/shield-qr-styler)
 ![bundle size](https://img.shields.io/bundlephobia/minzip/shield-qr-styler)
 
-**[Live Demo & Playground](https://qr-styler.vercel.app/)** | **[Documentation](https://qr-styler.vercel.app/#docs)** | **[npm](https://www.npmjs.com/package/shield-qr-styler)**
+**[Live Demo & Playground](https://qr-styler.vercel.app/)** | **[Documentation](https://qr-styler.vercel.app/#docs)** | **[npm](https://www.npmjs.com/package/shield-qr-styler)** | **[GitHub](https://github.com/shieldqr/qr-styler)**
 
 > Try the interactive playground at [qr-styler.vercel.app](https://qr-styler.vercel.app/) - customize shapes, colors, module styles, gradients, and effects in real-time, then download as SVG or PNG.
 

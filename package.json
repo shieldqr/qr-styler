@@ -1,0 +1,62 @@
+{
+  "name": "shield-qr-styler",
+  "version": "1.0.0",
+  "description": "Generate beautifully shaped, customizable QR codes as SVG. 22+ shape variations, 7 color presets, gradients, glow effects, and more.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rollup -c && cp src/index.d.ts dist/index.d.ts",
+    "dev": "rollup -c -w",
+    "prepublishOnly": "npm run build",
+    "test": "node test/basic.js"
+  },
+  "keywords": [
+    "qr",
+    "qr-code",
+    "qrcode",
+    "svg",
+    "styled-qr",
+    "shaped-qr",
+    "shield",
+    "heart",
+    "circle",
+    "hexagon",
+    "diamond",
+    "custom-qr",
+    "qr-generator",
+    "qr-design",
+    "gradient-qr"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "homepage": "",
+  "bugs": {
+    "url": ""
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "rollup": "^4.28.0"
+  }
+}

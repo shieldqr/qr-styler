@@ -2,15 +2,99 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shield QR Styler - Beautiful Shaped QR Codes</title>
-    <meta name="description" content="Generate beautifully shaped, customizable QR codes. 22+ shape variations, 7 color presets, gradients, glow effects, and more." />
+
+    <!-- Primary Meta Tags -->
+    <title>Shield QR Styler - Generate Beautiful Shaped QR Codes | Free Online Tool</title>
+    <meta name="title" content="Shield QR Styler - Generate Beautiful Shaped QR Codes | Free Online Tool" />
+    <meta name="description" content="Free open-source QR code generator with 22+ custom shapes (shield, heart, hexagon, circle, diamond), 7 color presets, gradients, glow effects. Download SVG/PNG. npm package for developers." />
+    <meta name="keywords" content="QR code generator, custom QR code, shaped QR code, QR code design, QR code maker, shield QR, heart QR code, hexagon QR, styled QR code, SVG QR code, QR code npm, beautiful QR code, QR code with shapes, free QR generator, QR code API, custom QR design, gradient QR code, glow QR code" />
+    <meta name="author" content="Shield QR Styler" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://qr-styler.vercel.app/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://qr-styler.vercel.app/" />
+    <meta property="og:title" content="Shield QR Styler - Generate Beautiful Shaped QR Codes" />
+    <meta property="og:description" content="Free open-source tool to create stunning QR codes in shields, hearts, hexagons, circles & more. 22+ shapes, 7 color presets, gradients, glow effects. Download SVG/PNG or use the npm package." />
+    <meta property="og:image" content="https://qr-styler.vercel.app/og-image.svg" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Shield QR Styler" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://qr-styler.vercel.app/" />
+    <meta name="twitter:title" content="Shield QR Styler - Generate Beautiful Shaped QR Codes" />
+    <meta name="twitter:description" content="Free open-source tool to create stunning QR codes in shields, hearts, hexagons & more. 22+ shapes, gradients, glow effects. Download SVG/PNG." />
+    <meta name="twitter:image" content="https://qr-styler.vercel.app/og-image.svg" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta name="theme-color" content="#0a0e27" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Shield QR Styler",
+      "url": "https://qr-styler.vercel.app/",
+      "description": "Generate beautifully shaped, customizable QR codes as SVG. 22+ shape variations, 7 color presets, gradients, glow effects, and more.",
+      "applicationCategory": "DesignApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "22+ shape variations including shield, heart, hexagon, circle, diamond",
+        "7 color presets: cyber, stealth, royal, military, fire, ocean, monochrome",
+        "7 module styles: circle, rounded, diamond, square, horizontal bars, vertical bars, pond",
+        "Linear and radial gradient support",
+        "Glow effects, inner borders, center clear for logo overlay",
+        "Decorative fill with controllable density and opacity",
+        "Download as SVG or PNG",
+        "Open source npm package for developers"
+      ],
+      "screenshot": "https://qr-styler.vercel.app/og-image.png",
+      "softwareVersion": "1.0.0",
+      "isAccessibleForFree": true
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      "name": "shield-qr-styler",
+      "description": "npm package to generate beautifully shaped QR codes as SVG. Works in Node.js, browsers, and edge runtimes.",
+      "codeRepository": "https://github.com/shield-qr-styler",
+      "programmingLanguage": "JavaScript",
+      "runtimePlatform": "Node.js",
+      "license": "https://opensource.org/licenses/MIT"
+    }
+    </script>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body class="bg-gray-950 text-white antialiased">
+    <!-- Noscript fallback for crawlers -->
+    <noscript>
+      <h1>Shield QR Styler - Beautiful Shaped QR Code Generator</h1>
+      <p>Generate beautifully shaped, customizable QR codes as SVG. Choose from 22+ shape variations including shields, hearts, hexagons, circles, diamonds, ovals, squares, and rectangles. Apply 7 color presets, gradients, glow effects, and more. Download as SVG or PNG. Available as a free open-source npm package for developers.</p>
+      <p>Shapes: Shield, Heart, Hexagon, Circle, Diamond, Oval, Square, Rectangle, Squircle, Ticket, Pill, Badge, Emblem</p>
+      <p>Color Presets: Cyber, Stealth, Royal, Military, Fire, Ocean, Monochrome</p>
+      <p>Module Styles: Circle, Rounded Square, Diamond, Square, Horizontal Bars, Vertical Bars, Pond</p>
+      <p>Install: npm install shield-qr-styler</p>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

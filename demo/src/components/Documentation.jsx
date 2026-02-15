@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, BookOpen, Terminal, Code2, Layers, Palette, Shapes, Zap, Box } from 'lucide-react';
+import { Copy, Check, BookOpen, Terminal, Code2, Layers, Palette, Shapes, Zap, Box, FileJson } from 'lucide-react';
 
 function CodeBlock({ code, language = 'javascript', title }) {
   const [copied, setCopied] = useState(false);
@@ -75,6 +75,8 @@ const NAV_ITEMS = [
   { id: 'presets', icon: Palette, label: 'Color Presets' },
   { id: 'modules', icon: Box, label: 'Module Styles' },
   { id: 'options', icon: Layers, label: 'All Options' },
+  { id: 'sticker', icon: Layers, label: 'Sticker Designer' },
+  { id: 'useconfig', icon: FileJson, label: 'Using Design Config' },
   { id: 'api', icon: Code2, label: 'API Reference' },
   { id: 'frameworks', icon: BookOpen, label: 'Framework Guides' },
 ];
@@ -323,6 +325,334 @@ const svg2 = await generateShapeQR('https://example.com', {
               </div>
             </DocSection>
 
+            {/* STICKER DESIGNER */}
+            <DocSection id="sticker" icon={Layers} title="Sticker / Container Designer">
+              <p>Wrap your QR code inside styled containers with custom shapes, borders, and curved text. The sticker designer provides an outer container, an inner container, curved top/bottom text, and QR positioning controls.</p>
+
+              <CodeBlock title="Quick Start — Sticker Frame SVG" code={`import {
+  STICKER_DEFAULTS,
+  computeStickerGeometry,
+  generateStickerFrameSVG,
+} from 'shield-qr-styler';
+
+// Use defaults or customise
+const config = {
+  ...STICKER_DEFAULTS,
+  outerShape: 'shield',
+  outerShieldVariant: 'classic',
+  innerShape: 'shield',
+  innerShieldVariant: 'classic',
+  innerSizeRatio: 0.72,
+  topTitle: 'SHIELDQR',
+  bottomMessage: 'SCAN TO CONNECT',
+};
+
+// Get geometry for positioning the QR code
+const geo = computeStickerGeometry(config);
+// geo.qrOffsetPctX, geo.qrOffsetPctY, geo.qrSizePctW, geo.qrSizePctH
+
+// Generate the sticker frame as an SVG string
+const frameSVG = generateStickerFrameSVG(config, 'my-sticker');
+// Returns a full <svg> element string with containers, borders, and curved text`} />
+
+              <h4 className="text-lg font-bold text-white mt-8 mb-3">Sticker Config Properties</h4>
+
+              <h5 className="text-base font-semibold text-gray-300 mt-6 mb-2">Outer Container</h5>
+              <div className="glass-panel overflow-hidden">
+                <PropTable rows={[
+                  { prop: 'showOuterContainer', type: 'boolean', default: 'true', desc: 'Toggle outer container visibility' },
+                  { prop: 'outerShape', type: 'string', default: "'circle'", desc: "Shape: 'circle', 'square', 'portrait', 'landscape', 'shield'" },
+                  { prop: 'outerShieldVariant', type: 'string', default: "'classic'", desc: "Shield style when outerShape is 'shield': 'classic', 'badge', 'modern', 'emblem'" },
+                  { prop: 'outerCornerRadius', type: 'number', default: '20', desc: 'Corner radius for rect-based shapes (SVG units)' },
+                  { prop: 'outerBgColor', type: 'string', default: "'#1f2937'", desc: 'Outer container background color' },
+                  { prop: 'outerBorderWidth', type: 'number', default: '6', desc: 'Outer container border width (0 to disable)' },
+                  { prop: 'outerBorderColor', type: 'string', default: "'#d4af37'", desc: 'Outer container border color' },
+                  { prop: 'outerBorderStyle', type: 'string', default: "'solid'", desc: "Border style: 'solid', 'dashed', 'dotted'" },
+                ]} />
+              </div>
+
+              <h5 className="text-base font-semibold text-gray-300 mt-6 mb-2">Inner Container</h5>
+              <div className="glass-panel overflow-hidden">
+                <PropTable rows={[
+                  { prop: 'showInnerContainer', type: 'boolean', default: 'true', desc: 'Toggle inner container visibility' },
+                  { prop: 'innerShape', type: 'string', default: "'circle'", desc: "Shape: 'circle', 'square', 'portrait', 'landscape', 'shield'" },
+                  { prop: 'innerShieldVariant', type: 'string', default: "'classic'", desc: "Shield style when innerShape is 'shield'" },
+                  { prop: 'innerCornerRadius', type: 'number', default: '16', desc: 'Corner radius for rect-based shapes (SVG units)' },
+                  { prop: 'innerBgColor', type: 'string', default: "'#ffffff'", desc: 'Inner container background color' },
+                  { prop: 'innerSizeRatio', type: 'number', default: '0.58', desc: 'Inner container size relative to outer (0.3 – 0.8)' },
+                  { prop: 'innerBorderWidth', type: 'number', default: '4', desc: 'Inner container border width' },
+                  { prop: 'innerBorderColor', type: 'string', default: "'#d4af37'", desc: 'Inner container border color' },
+                  { prop: 'innerBorderStyle', type: 'string', default: "'solid'", desc: "Border style: 'solid', 'dashed', 'dotted'" },
+                  { prop: 'qrPadding', type: 'number', default: '0.12', desc: 'QR code padding inside the inner container (ratio)' },
+                ]} />
+              </div>
+
+              <h5 className="text-base font-semibold text-gray-300 mt-6 mb-2">Text</h5>
+              <div className="glass-panel overflow-hidden">
+                <PropTable rows={[
+                  { prop: 'topTitle', type: 'string', default: "'SHIELDQR'", desc: 'Curved text along the top arc' },
+                  { prop: 'bottomMessage', type: 'string', default: "'SCAN TO CONNECT'", desc: 'Curved text along the bottom arc' },
+                  { prop: 'textColor', type: 'string', default: "'#ffffff'", desc: 'Color for both top and bottom text' },
+                  { prop: 'titleFontSize', type: 'number', default: '32', desc: 'Top title font size (SVG units)' },
+                  { prop: 'titleLetterSpacing', type: 'number', default: '6', desc: 'Top title letter spacing' },
+                  { prop: 'titleFontWeight', type: 'number', default: '700', desc: 'Top title font weight' },
+                  { prop: 'messageFontSize', type: 'number', default: '20', desc: 'Bottom message font size' },
+                  { prop: 'messageLetterSpacing', type: 'number', default: '3', desc: 'Bottom message letter spacing' },
+                  { prop: 'messageFontWeight', type: 'number', default: '600', desc: 'Bottom message font weight' },
+                  { prop: 'fontFamily', type: 'string', default: "'Arial, Helvetica, sans-serif'", desc: 'Font family for both texts' },
+                  { prop: 'topTextRadiusOffset', type: 'number', default: '0', desc: 'Top text curvature: 0 = flat, positive = natural curve up, negative = inverted' },
+                  { prop: 'bottomTextRadiusOffset', type: 'number', default: '0', desc: 'Bottom text curvature: 0 = flat, positive = natural curve down, negative = inverted' },
+                  { prop: 'topTextDy', type: 'number', default: '0', desc: 'Top text vertical shift (SVG units, negative = up)' },
+                  { prop: 'bottomTextDy', type: 'number', default: '0', desc: 'Bottom text vertical shift (SVG units, negative = up)' },
+                ]} />
+              </div>
+
+              <h5 className="text-base font-semibold text-gray-300 mt-6 mb-2">QR Sizing & Position</h5>
+              <div className="glass-panel overflow-hidden">
+                <PropTable rows={[
+                  { prop: 'qrZoom', type: 'number', default: '1.0', desc: 'QR code zoom level (0.5 – 3.0)' },
+                  { prop: 'qrOffsetX', type: 'number', default: '0', desc: 'Horizontal offset of the QR code (SVG units)' },
+                  { prop: 'qrOffsetY', type: 'number', default: '0', desc: 'Vertical offset of the QR code (SVG units)' },
+                ]} />
+              </div>
+
+              <h4 className="text-lg font-bold text-white mt-8 mb-3">Available Container Shapes</h4>
+              <div className="glass-panel overflow-hidden">
+                <PropTable rows={[
+                  { prop: 'circle', type: 'shape', default: '-', desc: 'Round container' },
+                  { prop: 'square', type: 'shape', default: '-', desc: 'Square with optional rounded corners' },
+                  { prop: 'portrait', type: 'shape', default: '-', desc: 'Tall rectangle (3:4 aspect ratio)' },
+                  { prop: 'landscape', type: 'shape', default: '-', desc: 'Wide rectangle (4:3 aspect ratio)' },
+                  { prop: 'shield', type: 'shape', default: '-', desc: 'Shield outline — uses STICKER_SHIELD_VARIANTS (classic, badge, modern, emblem)' },
+                ]} />
+              </div>
+
+              <CodeBlock title="Geometry Helper" code={`import { computeStickerGeometry } from 'shield-qr-styler';
+
+const geo = computeStickerGeometry(config);
+// Returns:
+// {
+//   canvasW, canvasH,           — SVG canvas dimensions
+//   centerX, centerY,           — center point
+//   outerHalfW, outerHalfH,     — outer container half-dimensions
+//   innerHalfW, innerHalfH,     — inner container half-dimensions
+//   textRadius,                  — radius for curved text paths
+//   qrSize,                      — computed QR side length
+//   qrSizePctW, qrSizePctH,    — QR size as % of canvas
+//   qrOffsetPctX, qrOffsetPctY, — QR position as % of canvas
+//   aspect,                      — current aspect ratio
+// }`} />
+
+              <CodeBlock title="CSS Wrapper Border Radius" code={`import { getStickerWrapperBorderRadius } from 'shield-qr-styler';
+
+// Get CSS border-radius for the outer wrapper div
+const borderRadius = getStickerWrapperBorderRadius(config, displayW, displayH);
+// Returns: '50%' for circle, '0' for shield, or a percentage string for rect shapes`} />
+
+              <CodeBlock title="Shield Transform Helper" code={`import { stickerShieldTransform } from 'shield-qr-styler';
+
+// Get the SVG path and transform for rendering a shield variant
+const { path, transform } = stickerShieldTransform('classic', cx, cy, halfW, halfH);
+// Use in: <path d={path} transform={transform} />`} />
+
+              <CodeBlock title="Full Example — React Sticker Component" code={`import { useMemo } from 'react';
+import { generateShapeQR } from 'shield-qr-styler';
+import {
+  STICKER_DEFAULTS,
+  computeStickerGeometry,
+  generateStickerFrameSVG,
+  getStickerWrapperBorderRadius,
+} from 'shield-qr-styler';
+
+function QRSticker({ url, qrDesign, stickerConfig }) {
+  const cfg = { ...STICKER_DEFAULTS, ...stickerConfig };
+  const geo = computeStickerGeometry(cfg);
+  const frameSVG = generateStickerFrameSVG(cfg, 'sticker-1');
+
+  const wrapperStyle = {
+    position: 'relative',
+    width: 300,
+    aspectRatio: geo.canvasW + ' / ' + geo.canvasH,
+    borderRadius: getStickerWrapperBorderRadius(cfg, 300, 300 * (geo.canvasH / geo.canvasW)),
+    overflow: 'hidden',
+  };
+
+  return (
+    <div style={wrapperStyle}>
+      {/* Sticker frame */}
+      <div style={{ position: 'absolute', inset: 0 }}
+           dangerouslySetInnerHTML={{ __html: frameSVG }} />
+      {/* QR code */}
+      <div style={{
+        position: 'absolute',
+        left: geo.qrOffsetPctX + '%',
+        top: geo.qrOffsetPctY + '%',
+        width: geo.qrSizePctW + '%',
+        height: geo.qrSizePctH + '%',
+      }}>
+        <QRPreview value={url} design={qrDesign} />
+      </div>
+    </div>
+  );
+}`} />
+            </DocSection>
+
+            {/* USING DESIGN CONFIG */}
+            <DocSection id="useconfig" icon={FileJson} title="Using the Design Config">
+              <p>The playground lets you <strong className="text-white">Copy</strong> or <strong className="text-white">Download</strong> the full design config as JSON. Here's how to use it in your code.</p>
+
+              <p className="text-sm">The exported JSON has this structure:</p>
+              <CodeBlock language="json" code={`{
+  "qrValue": "https://qr-styler.vercel.app",
+  "qrDesign": { /* QR styling options */ },
+  "stickerConfig": { /* sticker/container options — present when sticker is enabled */ }
+}`} />
+
+              <h4 className="text-lg font-bold text-white mt-8 mb-3">QR Code Only (no sticker)</h4>
+              <p className="text-sm">Pass <code className="text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded text-xs">qrDesign</code> directly as the options to <code className="text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded text-xs">generateShapeQR()</code>:</p>
+
+              <CodeBlock title="Browser / Node.js" code={`import { generateShapeQR } from 'shield-qr-styler';
+
+// Paste the copied config
+const config = {
+  "qrValue": "https://qr-styler.vercel.app",
+  "qrDesign": { "shapeCategory": "shield", "preset": "cyber", /* ... */ }
+};
+
+const svg = await generateShapeQR(config.qrValue, config.qrDesign);
+
+// Insert into DOM
+document.getElementById('qr').innerHTML = svg;
+
+// Or save to file (Node.js)
+// import fs from 'fs';
+// fs.writeFileSync('qr-code.svg', svg);`} />
+
+              <h4 className="text-lg font-bold text-white mt-8 mb-3">QR Code + Sticker Frame</h4>
+              <p className="text-sm">When <code className="text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded text-xs">stickerConfig</code> is present, use the sticker functions to wrap the QR code inside styled containers:</p>
+
+              <CodeBlock title="Browser — HTML Composition" code={`import {
+  generateShapeQR,
+  computeStickerGeometry,
+  generateStickerFrameSVG,
+} from 'shield-qr-styler';
+
+// Paste the copied config
+const config = { "qrValue": "...", "qrDesign": { ... }, "stickerConfig": { ... } };
+
+// 1. Generate the QR SVG
+const qrSvg = await generateShapeQR(config.qrValue, config.qrDesign);
+
+// 2. Generate the sticker frame
+const frameSvg = generateStickerFrameSVG(config.stickerConfig, 'my-qr');
+
+// 3. Get geometry to position the QR inside the frame
+const geo = computeStickerGeometry(config.stickerConfig);
+const sc = config.stickerConfig;
+
+// 4. Compose them together
+document.getElementById('sticker').innerHTML = \`
+  <div style="
+    position: relative;
+    width: 400px;
+    aspect-ratio: \${geo.canvasW} / \${geo.canvasH};
+    overflow: hidden;
+  ">
+    <div style="position: absolute; inset: 0">\${frameSvg}</div>
+    <div style="
+      position: absolute;
+      left: \${geo.qrOffsetPctX + (sc.qrOffsetX / geo.canvasW) * 100}%;
+      top: \${geo.qrOffsetPctY + (sc.qrOffsetY / geo.canvasH) * 100}%;
+      width: \${geo.qrSizePctW}%;
+      height: \${geo.qrSizePctH}%;
+    ">\${qrSvg}</div>
+  </div>
+\`;`} />
+
+              <CodeBlock title="Node.js — Composite SVG File" code={`import {
+  generateShapeQR,
+  computeStickerGeometry,
+  generateStickerFrameSVG,
+} from 'shield-qr-styler';
+import fs from 'fs';
+
+const config = JSON.parse(fs.readFileSync('qr-design-config.json', 'utf-8'));
+
+// Generate QR
+const qrSvg = await generateShapeQR(config.qrValue, config.qrDesign);
+
+if (config.stickerConfig) {
+  const geo = computeStickerGeometry(config.stickerConfig);
+  const frame = generateStickerFrameSVG(config.stickerConfig, 'export');
+
+  // Extract inner content from both SVGs
+  const frameInner = frame.replace(/^<svg[^>]*>/, '').replace(/<\\/svg>$/, '');
+  const vbMatch = qrSvg.match(/viewBox="([^"]+)"/);
+  const qrViewBox = vbMatch ? vbMatch[1] : '0 0 ' + geo.qrSize + ' ' + geo.qrSize;
+  const qrInner = qrSvg.replace(/^<svg[^>]*>/, '').replace(/<\\/svg>$/, '');
+
+  const sc = config.stickerConfig;
+  const qrX = (geo.qrOffsetPctX / 100) * geo.canvasW + (sc.qrOffsetX || 0);
+  const qrY = (geo.qrOffsetPctY / 100) * geo.canvasH + (sc.qrOffsetY || 0);
+  const qrW = (geo.qrSizePctW / 100) * geo.canvasW;
+  const qrH = (geo.qrSizePctH / 100) * geo.canvasH;
+
+  const composite = '<svg xmlns="http://www.w3.org/2000/svg" '
+    + 'viewBox="0 0 ' + geo.canvasW + ' ' + geo.canvasH + '">'
+    + frameInner
+    + '<svg x="' + qrX + '" y="' + qrY + '" width="' + qrW + '" '
+    + 'height="' + qrH + '" viewBox="' + qrViewBox + '">'
+    + qrInner + '</svg></svg>';
+
+  fs.writeFileSync('qr-sticker.svg', composite);
+} else {
+  fs.writeFileSync('qr-code.svg', qrSvg);
+}`} />
+
+              <CodeBlock title="React Component" code={`import { useState, useEffect, useMemo } from 'react';
+import {
+  generateShapeQR,
+  computeStickerGeometry,
+  generateStickerFrameSVG,
+} from 'shield-qr-styler';
+
+function QRFromConfig({ config }) {
+  const [qrSvg, setQrSvg] = useState('');
+
+  useEffect(() => {
+    generateShapeQR(config.qrValue, config.qrDesign).then(setQrSvg);
+  }, [config.qrValue, config.qrDesign]);
+
+  // If no sticker, render QR only
+  if (!config.stickerConfig) {
+    return <div dangerouslySetInnerHTML={{ __html: qrSvg }} />;
+  }
+
+  const geo = computeStickerGeometry(config.stickerConfig);
+  const frame = generateStickerFrameSVG(config.stickerConfig, 'cfg-qr');
+  const sc = config.stickerConfig;
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: 400,
+      aspectRatio: geo.canvasW + ' / ' + geo.canvasH,
+      overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', inset: 0 }}
+           dangerouslySetInnerHTML={{ __html: frame }} />
+      <div style={{
+        position: 'absolute',
+        left: geo.qrOffsetPctX + (sc.qrOffsetX / geo.canvasW) * 100 + '%',
+        top: geo.qrOffsetPctY + (sc.qrOffsetY / geo.canvasH) * 100 + '%',
+        width: geo.qrSizePctW + '%',
+        height: geo.qrSizePctH + '%',
+      }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
+    </div>
+  );
+}`} />
+            </DocSection>
+
             {/* API REFERENCE */}
             <DocSection id="api" icon={Code2} title="API Reference">
               <h4 className="text-lg font-bold text-white mt-6 mb-3">Core Functions</h4>
@@ -340,6 +670,7 @@ const uri = await generateShapeQRDataURI('https://example.com');`} />
               <h4 className="text-lg font-bold text-white mt-8 mb-3">Library Access</h4>
 
               <CodeBlock code={`import {
+  // QR library access
   getShapeLibrary,     // Full library object
   getShapeCategories,  // ['none', 'square', ...]
   getShapeVariations,  // ('shield') => ['classic', 'badge', ...]
@@ -348,11 +679,19 @@ const uri = await generateShapeQRDataURI('https://example.com');`} />
   registerShape,       // Add custom shapes at runtime
   resolveShape,        // Resolve design config to shape definition
   resolveColors,       // Resolve design config to color values
+
+  // Sticker designer functions
+  migrateStickerConfig,          // (rawCfg) => cfg — backward-compat key migration
+  computeStickerGeometry,        // (cfg) => StickerGeometry — dimensions, positions, radii
+  generateStickerFrameSVG,       // (cfg, uid) => string — full <svg> frame markup
+  getStickerWrapperBorderRadius, // (cfg, w, h) => string — CSS border-radius
+  stickerShieldTransform,        // (variant, cx, cy, halfW, halfH) => { path, transform }
 } from 'shield-qr-styler';`} />
 
               <h4 className="text-lg font-bold text-white mt-8 mb-3">Constants</h4>
 
               <CodeBlock code={`import {
+  // QR design constants
   SHAPE_LIBRARY,     // Full shape definitions
   COLOR_PRESETS,     // Color preset definitions with metadata
   MODULE_STYLES,     // Module style definitions with icons
@@ -361,12 +700,18 @@ const uri = await generateShapeQRDataURI('https://example.com');`} />
   GRADIENT_PRESETS,  // Gradient preset definitions
   DEFAULT_OPTIONS,   // Default generation options
   DEFAULT_DESIGN,    // Default design config for UI components
+
+  // Sticker designer constants
+  STICKER_SHAPES,           // Available container shapes { circle, square, portrait, landscape, shield }
+  STICKER_SHIELD_VARIANTS,  // Shield variants { classic, badge, modern, emblem } with SVG path data
+  STICKER_DEFAULTS,         // Full default sticker configuration object
 } from 'shield-qr-styler';`} />
 
               <h4 className="text-lg font-bold text-white mt-8 mb-3">TypeScript</h4>
               <p>Full TypeScript declarations are included. Key types:</p>
 
               <CodeBlock language="typescript" code={`import type {
+  // QR types
   GenerateOptions,
   DesignConfig,
   ShapeCategory,
@@ -374,6 +719,12 @@ const uri = await generateShapeQRDataURI('https://example.com');`} />
   ColorPreset,
   GradientConfig,
   ResolvedShape,
+
+  // Sticker types
+  StickerShapeInfo,     // { label, icon, aspect }
+  StickerShieldVariant, // { path, origW, origH, label, description }
+  StickerConfig,        // Full sticker configuration interface
+  StickerGeometry,      // Return type of computeStickerGeometry()
 } from 'shield-qr-styler';`} />
             </DocSection>
 

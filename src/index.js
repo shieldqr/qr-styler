@@ -1349,6 +1349,340 @@ function mergeOptions(defaults, overrides) {
 }
 
 // ═════════════════════════════════════════════════
+// Sticker / Container Designer
+// ═════════════════════════════════════════════════
+//
+// Adds the ability to wrap a QR code inside styled nested containers
+// (outer + inner) with customizable shapes, borders, curved text,
+// and QR positioning/sizing controls.
+//
+// This is a pure-JS, framework-agnostic API that produces SVG strings.
+// React components can consume these via dangerouslySetInnerHTML or
+// by using the helper functions to build their own JSX.
+
+// ─── Sticker shape aspects (w/h ratio) ───────────
+
+export const STICKER_SHAPES = {
+  circle:    { label: 'Circle',    icon: '●', aspect: 1 },
+  square:    { label: 'Square',    icon: '■', aspect: 1 },
+  portrait:  { label: 'Portrait',  icon: '▮', aspect: 0.75 },
+  landscape: { label: 'Landscape', icon: '▬', aspect: 1.333 },
+  shield:    { label: 'Shield',    icon: '🛡', aspect: null }, // dynamic per variant
+};
+
+// ─── Shield container variants ───────────────────
+// These are the same paths from SHAPE_LIBRARY.shield.variations, but
+// structured for use in the sticker container context with origW/origH
+// for scaling to arbitrary bounding boxes.
+
+export const STICKER_SHIELD_VARIANTS = {
+  classic: {
+    label: 'Classic',
+    description: 'Heraldic shield with pointed base',
+    origW: 300, origH: 340,
+    path: SHAPE_LIBRARY.shield.variations.classic.path,
+  },
+  badge: {
+    label: 'Badge',
+    description: 'Rounded badge with soft curves',
+    origW: 300, origH: 330,
+    path: SHAPE_LIBRARY.shield.variations.badge.path,
+  },
+  modern: {
+    label: 'Modern',
+    description: 'Clean with rounded bottom',
+    origW: 300, origH: 310,
+    path: SHAPE_LIBRARY.shield.variations.modern.path,
+  },
+  emblem: {
+    label: 'Emblem',
+    description: 'Angular military chevron',
+    origW: 300, origH: 350,
+    path: SHAPE_LIBRARY.shield.variations.emblem.path,
+  },
+};
+
+// ─── Sticker default config ──────────────────────
+
+export const STICKER_DEFAULTS = {
+  // Text
+  topTitle: 'SHIELDQR',
+  bottomMessage: 'SCAN TO CONNECT',
+
+  // Outer container
+  outerShape: 'circle',           // circle | square | portrait | landscape | shield
+  outerShieldVariant: 'classic',  // classic | badge | modern | emblem
+  outerCornerRadius: 20,          // SVG units, rect-based shapes only
+  outerBgColor: '#1f2937',
+  outerBorderWidth: 6,
+  outerBorderColor: '#d4af37',
+  outerBorderStyle: 'solid',      // solid | dashed | dotted
+  showOuterContainer: true,
+
+  // Inner container
+  innerShape: 'circle',           // circle | square | portrait | landscape | shield
+  innerShieldVariant: 'classic',  // classic | badge | modern | emblem
+  innerCornerRadius: 16,          // SVG units, rect-based shapes only
+  innerBgColor: '#ffffff',
+  innerSizeRatio: 0.58,           // 0.3 – 0.8 (relative to outer)
+  innerBorderWidth: 4,
+  innerBorderColor: '#d4af37',
+  innerBorderStyle: 'solid',
+  showInnerContainer: true,
+
+  // Text styling
+  textColor: '#ffffff',
+  titleFontSize: 32,
+  titleLetterSpacing: 6,
+  titleFontWeight: 700,
+  messageFontSize: 20,
+  messageLetterSpacing: 3,
+  messageFontWeight: 600,
+  fontFamily: 'Arial, Helvetica, sans-serif',
+
+  // Text curvature: 0 = flat, positive = natural curve, negative = inverted
+  topTextRadiusOffset: 0,
+  bottomTextRadiusOffset: 0,
+
+  // Text vertical shift
+  topTextDy: 0,
+  bottomTextDy: 0,
+
+  // QR padding inside inner container (ratio)
+  qrPadding: 0.12,
+
+  // QR zoom
+  qrZoom: 1.0,
+
+  // QR visual offset adjustment (SVG units)
+  qrOffsetX: 0,
+  qrOffsetY: 0,
+};
+
+// ─── Sticker config migration ────────────────────
+
+export function migrateStickerConfig(raw) {
+  const cfg = { ...STICKER_DEFAULTS, ...raw };
+  if ('showInnerCircle' in raw && !('showInnerContainer' in raw)) {
+    cfg.showInnerContainer = raw.showInnerCircle;
+  }
+  if ('innerRadiusRatio' in raw && !('innerSizeRatio' in raw)) {
+    cfg.innerSizeRatio = raw.innerRadiusRatio;
+  }
+  return cfg;
+}
+
+// ─── Shield transform helper ─────────────────────
+
+function _fmtS(n) { return Number(n.toFixed(3)); }
+
+export function stickerShieldTransform(variant, cx, cy, halfW, halfH) {
+  const v = STICKER_SHIELD_VARIANTS[variant] || STICKER_SHIELD_VARIANTS.classic;
+  const sx = (halfW * 2) / v.origW;
+  const sy = (halfH * 2) / v.origH;
+  const tx = cx - halfW;
+  const ty = cy - halfH;
+  return { path: v.path, transform: `translate(${_fmtS(tx)},${_fmtS(ty)}) scale(${_fmtS(sx)},${_fmtS(sy)})` };
+}
+
+function _getShieldAspect(variant) {
+  const v = STICKER_SHIELD_VARIANTS[variant] || STICKER_SHIELD_VARIANTS.classic;
+  return v.origW / v.origH;
+}
+
+// ─── Sticker geometry calculator ─────────────────
+
+export function computeStickerGeometry(cfg) {
+  let aspect = STICKER_SHAPES[cfg.outerShape]?.aspect;
+  if (cfg.outerShape === 'shield') {
+    aspect = _getShieldAspect(cfg.outerShieldVariant || 'classic');
+  }
+  if (!aspect) aspect = 1;
+
+  const canvasW = aspect >= 1 ? 500 : 500 * aspect;
+  const canvasH = aspect >= 1 ? 500 / aspect : 500;
+  const centerX = canvasW / 2;
+  const centerY = canvasH / 2;
+  const minDim = Math.min(canvasW, canvasH);
+
+  const outerHalfW = canvasW / 2 - cfg.outerBorderWidth / 2 - 2;
+  const outerHalfH = canvasH / 2 - cfg.outerBorderWidth / 2 - 2;
+  const outerRadius = Math.min(outerHalfW, outerHalfH);
+
+  const innerHalfW = outerHalfW * cfg.innerSizeRatio;
+  const innerHalfH = outerHalfH * cfg.innerSizeRatio;
+  const innerRadius = outerRadius * cfg.innerSizeRatio;
+
+  const zoom = cfg.qrZoom ?? 1.0;
+  const innerMinHalf = Math.min(innerHalfW, innerHalfH);
+  let qrSideHalf;
+  if (cfg.innerShape === 'circle') {
+    qrSideHalf = innerRadius * (1 - cfg.qrPadding) * Math.SQRT1_2 * zoom;
+  } else {
+    qrSideHalf = innerMinHalf * (1 - cfg.qrPadding) * zoom;
+  }
+  const qrSize = qrSideHalf * 2;
+  const qrOffsetX = centerX - qrSideHalf;
+  const qrOffsetY = centerY - qrSideHalf;
+
+  const qrSizePctW = (qrSize / canvasW) * 100;
+  const qrSizePctH = (qrSize / canvasH) * 100;
+  const qrOffsetPctX = (qrOffsetX / canvasW) * 100;
+  const qrOffsetPctY = (qrOffsetY / canvasH) * 100;
+  const innerRadiusPct = (innerRadius / minDim) * 100;
+
+  const textRadius = (outerRadius + innerRadius) / 2;
+
+  return {
+    canvasW, canvasH, centerX, centerY, minDim,
+    outerHalfW, outerHalfH, outerRadius,
+    innerHalfW, innerHalfH, innerRadius,
+    textRadius, qrSize, qrSideHalf,
+    qrSizePctW, qrSizePctH, qrOffsetPctX, qrOffsetPctY,
+    innerRadiusPct, aspect,
+  };
+}
+
+// ─── Sticker wrapper border-radius helper ────────
+
+export function getStickerWrapperBorderRadius(cfg, displayW, displayH) {
+  const shape = cfg.outerShape;
+  if (shape === 'circle') return '50%';
+  if (shape === 'shield') return '0';
+  const geo = computeStickerGeometry(cfg);
+  const maxR = Math.min(displayW, displayH) / 2;
+  const r = Math.min(cfg.outerCornerRadius || 0, maxR);
+  const canvasMin = Math.min(geo.canvasW, geo.canvasH);
+  const pct = (r / canvasMin) * 100;
+  return `${pct}%`;
+}
+
+// ─── SVG shape element string builder ────────────
+
+function _shapeElSVG(shape, shieldVariant, cx, cy, halfW, halfH, radius, cornerRadius, attrs) {
+  const attrStr = Object.entries(attrs)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}="${v}"`)
+    .join(' ');
+
+  if (shape === 'circle') {
+    const r = radius ?? Math.min(halfW, halfH);
+    return `<circle cx="${_fmtS(cx)}" cy="${_fmtS(cy)}" r="${_fmtS(r)}" ${attrStr}/>`;
+  }
+  if (shape === 'shield') {
+    const { path, transform } = stickerShieldTransform(shieldVariant || 'classic', cx, cy, halfW, halfH);
+    return `<path d="${path}" transform="${transform}" stroke-linejoin="round" ${attrStr}/>`;
+  }
+  // Rect-based
+  const x = cx - halfW;
+  const y = cy - halfH;
+  const w = halfW * 2;
+  const h = halfH * 2;
+  const rx = Math.min(cornerRadius || 0, halfW, halfH);
+  return `<rect x="${_fmtS(x)}" y="${_fmtS(y)}" width="${_fmtS(w)}" height="${_fmtS(h)}" rx="${_fmtS(rx)}" ry="${_fmtS(rx)}" ${attrStr}/>`;
+}
+
+// ─── Sticker frame SVG string generator ──────────
+
+export function generateStickerFrameSVG(rawCfg, uid) {
+  const cfg = migrateStickerConfig(rawCfg);
+  const geo = computeStickerGeometry(cfg);
+  const { canvasW, canvasH, centerX, centerY, outerHalfW, outerHalfH, outerRadius, innerHalfW, innerHalfH, innerRadius, textRadius } = geo;
+
+  if (!uid) uid = `stk-${Math.random().toString(36).slice(2, 8)}`;
+
+  // ── Arc geometry for curved text
+  function computeArc(offset) {
+    const absOff = Math.abs(offset);
+    const scale = Math.pow(2, (200 - absOff) / 40);
+    const chord = textRadius;
+    const R = Math.max(chord, chord * scale);
+    const sag = R - Math.sqrt(Math.max(0, R * R - chord * chord));
+    return { chord, R, sag };
+  }
+
+  const topOffset = cfg.topTextRadiusOffset || 0;
+  const topArc = computeArc(topOffset);
+  const topCurveUp = topOffset >= 0;
+  const topSweep = topCurveUp ? 1 : 0;
+  const topArcY = topCurveUp
+    ? _fmtS(centerY - textRadius + topArc.sag)
+    : _fmtS(centerY - textRadius - topArc.sag);
+
+  const botOffset = cfg.bottomTextRadiusOffset || 0;
+  const botArc = computeArc(botOffset);
+  const botCurveDown = botOffset >= 0;
+  const botSweep = botCurveDown ? 0 : 1;
+  const botArcY = botCurveDown
+    ? _fmtS(centerY + textRadius - botArc.sag)
+    : _fmtS(centerY + textRadius + botArc.sag);
+
+  const topArcPath = `M ${_fmtS(centerX - topArc.chord)},${topArcY} A ${_fmtS(topArc.R)},${_fmtS(topArc.R)} 0 0,${topSweep} ${_fmtS(centerX + topArc.chord)},${topArcY}`;
+  const bottomArcPath = `M ${_fmtS(centerX - botArc.chord)},${botArcY} A ${_fmtS(botArc.R)},${_fmtS(botArc.R)} 0 0,${botSweep} ${_fmtS(centerX + botArc.chord)},${botArcY}`;
+
+  // Dash arrays
+  let outerDash = '';
+  if (cfg.outerBorderStyle === 'dashed')
+    outerDash = `${cfg.outerBorderWidth * 3} ${cfg.outerBorderWidth * 2}`;
+  if (cfg.outerBorderStyle === 'dotted')
+    outerDash = `${cfg.outerBorderWidth} ${cfg.outerBorderWidth * 1.5}`;
+
+  let innerDash = '';
+  if (cfg.innerBorderStyle === 'dashed')
+    innerDash = `${cfg.innerBorderWidth * 3} ${cfg.innerBorderWidth * 2}`;
+  if (cfg.innerBorderStyle === 'dotted')
+    innerDash = `${cfg.innerBorderWidth} ${cfg.innerBorderWidth * 1.5}`;
+
+  const topId = `${uid}-top`;
+  const bottomId = `${uid}-bot`;
+
+  // Escape text for XML
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const parts = [];
+  parts.push(`<svg data-role="sticker-frame" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="100%" height="100%" style="position:absolute;inset:0">`);
+  parts.push(`<defs>`);
+  parts.push(`  <path id="${topId}" d="${topArcPath}" fill="none"/>`);
+  parts.push(`  <path id="${bottomId}" d="${bottomArcPath}" fill="none"/>`);
+  parts.push(`</defs>`);
+
+  // Outer container
+  if (cfg.showOuterContainer !== false) {
+    parts.push(_shapeElSVG(cfg.outerShape, cfg.outerShieldVariant, centerX, centerY, outerHalfW, outerHalfH, outerRadius, cfg.outerCornerRadius, { fill: cfg.outerBgColor }));
+    if (cfg.outerBorderWidth > 0) {
+      parts.push(_shapeElSVG(cfg.outerShape, cfg.outerShieldVariant, centerX, centerY, outerHalfW, outerHalfH, outerRadius, cfg.outerCornerRadius, {
+        fill: 'none', stroke: cfg.outerBorderColor, 'stroke-width': cfg.outerBorderWidth,
+        ...(outerDash ? { 'stroke-dasharray': outerDash } : {}),
+      }));
+    }
+  }
+
+  // Inner container
+  if (cfg.showInnerContainer !== false) {
+    parts.push(_shapeElSVG(cfg.innerShape, cfg.innerShieldVariant, centerX, centerY, innerHalfW, innerHalfH, innerRadius, cfg.innerCornerRadius, { fill: cfg.innerBgColor }));
+    if (cfg.innerBorderWidth > 0) {
+      parts.push(_shapeElSVG(cfg.innerShape, cfg.innerShieldVariant, centerX, centerY, innerHalfW, innerHalfH, innerRadius, cfg.innerCornerRadius, {
+        fill: 'none', stroke: cfg.innerBorderColor, 'stroke-width': cfg.innerBorderWidth,
+        ...(innerDash ? { 'stroke-dasharray': innerDash } : {}),
+      }));
+    }
+  }
+
+  // Top text
+  parts.push(`<text fill="${esc(cfg.textColor)}" font-size="${cfg.titleFontSize}" font-weight="${cfg.titleFontWeight}" font-family="${esc(cfg.fontFamily)}" letter-spacing="${cfg.titleLetterSpacing}" dy="${cfg.topTextDy || 0}">`);
+  parts.push(`  <textPath href="#${topId}" startOffset="50%" text-anchor="middle" dominant-baseline="central">${esc(cfg.topTitle)}</textPath>`);
+  parts.push(`</text>`);
+
+  // Bottom text
+  parts.push(`<text fill="${esc(cfg.textColor)}" font-size="${cfg.messageFontSize}" font-weight="${cfg.messageFontWeight}" font-family="${esc(cfg.fontFamily)}" letter-spacing="${cfg.messageLetterSpacing}" dy="${cfg.bottomTextDy || 0}">`);
+  parts.push(`  <textPath href="#${bottomId}" startOffset="50%" text-anchor="middle" dominant-baseline="central">${esc(cfg.bottomMessage)}</textPath>`);
+  parts.push(`</text>`);
+
+  parts.push(`</svg>`);
+  return parts.join('\n');
+}
+
+// ═════════════════════════════════════════════════
 // Default Export
 // ═════════════════════════════════════════════════
 
@@ -1382,4 +1716,13 @@ export default {
   GRADIENT_PRESETS,
   DEFAULT_OPTIONS,
   DEFAULT_DESIGN,
+  // Sticker / Container Designer
+  STICKER_SHAPES,
+  STICKER_SHIELD_VARIANTS,
+  STICKER_DEFAULTS,
+  migrateStickerConfig,
+  computeStickerGeometry,
+  generateStickerFrameSVG,
+  stickerShieldTransform,
+  getStickerWrapperBorderRadius,
 };

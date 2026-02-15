@@ -18,6 +18,8 @@ Generate beautifully shaped, customizable QR codes as SVG. Framework-agnostic, w
 - **Gradient Support** - Linear and radial gradients with preset options
 - **Effects** - Glow, inner borders, center clear (logo area), decorative fill
 - **Finder Customization** - Pattern/solid mode with 4 shape styles
+- **Sticker / Container Designer** - Wrap QR codes in styled outer & inner containers with curved text
+- **5 Container Shapes** - Circle, square, portrait, landscape, and shield (4 shield variants)
 - **Extensible** - Register custom shapes at runtime
 - **SVG Output** - Clean, scalable vector graphics
 - **Isomorphic** - Works in Node.js, browsers, and edge runtimes
@@ -156,6 +158,125 @@ const svg = await generateShapeQR(url, {
 });
 ```
 
+## Sticker / Container Designer
+
+Wrap your QR code inside styled containers with custom shapes, borders, and curved text.
+
+### Quick Start
+
+```javascript
+import {
+  STICKER_DEFAULTS,
+  computeStickerGeometry,
+  generateStickerFrameSVG,
+} from 'shield-qr-styler';
+
+const config = {
+  ...STICKER_DEFAULTS,
+  outerShape: 'shield',
+  outerShieldVariant: 'classic',
+  innerShape: 'shield',
+  innerShieldVariant: 'classic',
+  innerSizeRatio: 0.72,
+  topTitle: 'SHIELDQR',
+  bottomMessage: 'SCAN TO CONNECT',
+};
+
+// Compute geometry for QR positioning
+const geo = computeStickerGeometry(config);
+
+// Generate the sticker frame as a full SVG string
+const frameSVG = generateStickerFrameSVG(config, 'my-sticker');
+```
+
+### Container Shapes
+
+| Shape       | Description                                          |
+|-------------|------------------------------------------------------|
+| `circle`    | Round container                                      |
+| `square`    | Square with optional rounded corners                 |
+| `portrait`  | Tall rectangle (3:4 aspect ratio)                    |
+| `landscape` | Wide rectangle (4:3 aspect ratio)                    |
+| `shield`    | Shield outline — classic, badge, modern, emblem      |
+
+### Sticker Config Properties
+
+```javascript
+const config = {
+  // Outer container
+  showOuterContainer: true,
+  outerShape: 'circle',          // circle | square | portrait | landscape | shield
+  outerShieldVariant: 'classic', // classic | badge | modern | emblem (when outerShape is 'shield')
+  outerCornerRadius: 20,         // rect-based shapes only (SVG units)
+  outerBgColor: '#1f2937',
+  outerBorderWidth: 6,
+  outerBorderColor: '#d4af37',
+  outerBorderStyle: 'solid',     // solid | dashed | dotted
+
+  // Inner container
+  showInnerContainer: true,
+  innerShape: 'circle',
+  innerShieldVariant: 'classic',
+  innerCornerRadius: 16,
+  innerBgColor: '#ffffff',
+  innerSizeRatio: 0.58,          // 0.3 – 0.8 relative to outer
+  innerBorderWidth: 4,
+  innerBorderColor: '#d4af37',
+  innerBorderStyle: 'solid',
+
+  // Text
+  topTitle: 'SHIELDQR',
+  bottomMessage: 'SCAN TO CONNECT',
+  textColor: '#ffffff',
+  titleFontSize: 32,
+  titleLetterSpacing: 6,
+  titleFontWeight: 700,
+  messageFontSize: 20,
+  messageLetterSpacing: 3,
+  messageFontWeight: 600,
+  fontFamily: 'Arial, Helvetica, sans-serif',
+
+  // Text curvature: 0 = flat, positive = natural curve, negative = inverted
+  topTextRadiusOffset: 0,
+  bottomTextRadiusOffset: 0,
+  topTextDy: 0,       // vertical shift
+  bottomTextDy: 0,
+
+  // QR sizing
+  qrPadding: 0.12,    // padding inside inner container (ratio)
+  qrZoom: 1.0,        // 0.5 – 3.0
+  qrOffsetX: 0,       // horizontal offset (SVG units)
+  qrOffsetY: 0,       // vertical offset (SVG units)
+};
+```
+
+### Sticker Geometry
+
+```javascript
+const geo = computeStickerGeometry(config);
+// Returns: {
+//   canvasW, canvasH,           — SVG canvas dimensions
+//   centerX, centerY,           — center point
+//   outerHalfW, outerHalfH,     — outer container half-dimensions
+//   innerHalfW, innerHalfH,     — inner container half-dimensions
+//   textRadius,                  — radius for curved text paths
+//   qrSize,                      — computed QR side length
+//   qrSizePctW, qrSizePctH,    — QR size as % of canvas
+//   qrOffsetPctX, qrOffsetPctY, — QR position as % of canvas
+//   aspect,                      — current aspect ratio
+// }
+```
+
+### Sticker Helper Functions
+
+```javascript
+import {
+  getStickerWrapperBorderRadius, // (config, displayW, displayH) => CSS border-radius string
+  stickerShieldTransform,        // (variant, cx, cy, halfW, halfH) => { path, transform }
+  migrateStickerConfig,          // (rawConfig) => config — backward-compat key migration
+} from 'shield-qr-styler';
+```
+
 ## API Reference
 
 ### Core Functions
@@ -172,6 +293,7 @@ import {
 
 ```javascript
 import {
+  // QR library
   getShapeLibrary,      // () => full shape library object
   getShapeCategories,   // () => string[]
   getShapeVariations,   // (category) => string[]
@@ -180,6 +302,13 @@ import {
   registerShape,        // (key, definition, merge?) => void
   resolveShape,         // (design) => { category, variation, shape }
   resolveColors,        // (design) => { background, foreground, ... }
+
+  // Sticker designer
+  migrateStickerConfig,          // backward-compat config migration
+  computeStickerGeometry,        // compute dimensions and positions
+  generateStickerFrameSVG,       // generate full SVG frame string
+  getStickerWrapperBorderRadius, // CSS border-radius for wrapper div
+  stickerShieldTransform,        // SVG path + transform for shield shapes
 } from 'shield-qr-styler';
 ```
 
@@ -187,6 +316,7 @@ import {
 
 ```javascript
 import {
+  // QR design
   SHAPE_LIBRARY,      // Full shape definitions
   COLOR_PRESETS,       // Color preset definitions
   MODULE_STYLES,       // Module style metadata
@@ -195,6 +325,11 @@ import {
   GRADIENT_PRESETS,    // Gradient preset definitions
   DEFAULT_OPTIONS,     // Default generation options
   DEFAULT_DESIGN,      // Default UI design config
+
+  // Sticker designer
+  STICKER_SHAPES,           // Available container shapes
+  STICKER_SHIELD_VARIANTS,  // Shield variants with SVG path data
+  STICKER_DEFAULTS,         // Default sticker configuration
 } from 'shield-qr-styler';
 ```
 
@@ -279,12 +414,19 @@ Full type declarations are included:
 
 ```typescript
 import type {
+  // QR types
   GenerateOptions,
   DesignConfig,
   ShapeCategory,
   ShapeVariation,
   ColorPreset,
   GradientConfig,
+
+  // Sticker types
+  StickerShapeInfo,     // { label, icon, aspect }
+  StickerShieldVariant, // { path, origW, origH, label, description }
+  StickerConfig,        // Full sticker configuration
+  StickerGeometry,      // Return type of computeStickerGeometry()
 } from 'shield-qr-styler';
 ```
 

@@ -154,3 +154,94 @@ export function resolveColors(design: Partial<DesignConfig>): {
   outlineWidth: number;
 };
 export function serializeDesign(design: DesignConfig): Record<string, any>;
+
+// ═══════════════════════════════════════════
+// Sticker / Container Designer
+// ═══════════════════════════════════════════
+
+export interface StickerShapeInfo {
+  label: string;
+  icon: string;
+  aspect: number | null;
+}
+
+export interface StickerShieldVariant {
+  label: string;
+  description: string;
+  origW: number;
+  origH: number;
+  path: string;
+}
+
+export interface StickerConfig {
+  topTitle: string;
+  bottomMessage: string;
+  outerShape: 'circle' | 'square' | 'portrait' | 'landscape' | 'shield';
+  outerShieldVariant: 'classic' | 'badge' | 'modern' | 'emblem';
+  outerCornerRadius: number;
+  outerBgColor: string;
+  outerBorderWidth: number;
+  outerBorderColor: string;
+  outerBorderStyle: 'solid' | 'dashed' | 'dotted';
+  showOuterContainer: boolean;
+  innerShape: 'circle' | 'square' | 'portrait' | 'landscape' | 'shield';
+  innerShieldVariant: 'classic' | 'badge' | 'modern' | 'emblem';
+  innerCornerRadius: number;
+  innerBgColor: string;
+  innerSizeRatio: number;
+  innerBorderWidth: number;
+  innerBorderColor: string;
+  innerBorderStyle: 'solid' | 'dashed' | 'dotted';
+  showInnerContainer: boolean;
+  textColor: string;
+  titleFontSize: number;
+  titleLetterSpacing: number;
+  titleFontWeight: number;
+  messageFontSize: number;
+  messageLetterSpacing: number;
+  messageFontWeight: number;
+  fontFamily: string;
+  topTextRadiusOffset: number;
+  bottomTextRadiusOffset: number;
+  topTextDy: number;
+  bottomTextDy: number;
+  qrPadding: number;
+  qrZoom: number;
+  qrOffsetX: number;
+  qrOffsetY: number;
+}
+
+export interface StickerGeometry {
+  canvasW: number;
+  canvasH: number;
+  centerX: number;
+  centerY: number;
+  minDim: number;
+  outerHalfW: number;
+  outerHalfH: number;
+  outerRadius: number;
+  innerHalfW: number;
+  innerHalfH: number;
+  innerRadius: number;
+  textRadius: number;
+  qrSize: number;
+  qrSideHalf: number;
+  qrSizePctW: number;
+  qrSizePctH: number;
+  qrOffsetPctX: number;
+  qrOffsetPctY: number;
+  innerRadiusPct: number;
+  aspect: number;
+}
+
+// Sticker constants
+export const STICKER_SHAPES: Record<string, StickerShapeInfo>;
+export const STICKER_SHIELD_VARIANTS: Record<string, StickerShieldVariant>;
+export const STICKER_DEFAULTS: StickerConfig;
+
+// Sticker functions
+export function migrateStickerConfig(raw: Partial<StickerConfig>): StickerConfig;
+export function computeStickerGeometry(cfg: StickerConfig): StickerGeometry;
+export function generateStickerFrameSVG(cfg: Partial<StickerConfig>, uid?: string): string;
+export function stickerShieldTransform(variant: string, cx: number, cy: number, halfW: number, halfH: number): { path: string; transform: string };
+export function getStickerWrapperBorderRadius(cfg: StickerConfig, displayW: number, displayH: number): string;

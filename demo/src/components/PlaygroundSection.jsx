@@ -335,17 +335,42 @@ export default function PlaygroundSection() {
               {openSections.custom && (
                 <div className="p-4 space-y-4">
                   <p className="text-xs text-gray-500 mb-2">Override the preset with custom colours.</p>
+                  {/* Transparent background toggle */}
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <span className="text-xs font-semibold text-gray-400 w-24 flex-shrink-0">Transparent BG</span>
+                    <button
+                      onClick={() => setDesign((prev) => {
+                        const presetColors = COLOR_PRESETS[prev.preset] || COLOR_PRESETS.cyber;
+                        const isCurrentlyTransparent = prev.customColors?.background === 'transparent';
+                        if (isCurrentlyTransparent) {
+                          // Restore the preset background
+                          const base = { ...prev.customColors, background: presetColors.background };
+                          // If all colors match preset, remove customColors entirely
+                          const allMatch = base.foreground === presetColors.foreground && base.outline === presetColors.outline && base.finderOuter === presetColors.finderOuter && base.finderInner === presetColors.finderInner;
+                          return { ...prev, customColors: allMatch ? null : base, preset: allMatch ? (prev.preset || 'cyber') : null };
+                        } else {
+                          const base = prev.customColors || { background: presetColors.background, foreground: presetColors.foreground, outline: presetColors.outline, finderOuter: presetColors.finderOuter, finderInner: presetColors.finderInner, outlineWidth: presetColors.outlineWidth };
+                          return { ...prev, preset: null, customColors: { ...base, background: 'transparent' } };
+                        }
+                      })}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${design.customColors?.background === 'transparent' ? 'bg-cyan-500' : 'bg-gray-600'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${design.customColors?.background === 'transparent' ? 'translate-x-5' : ''}`} />
+                    </button>
+                    <span className="text-xs text-gray-500">QR takes parent background</span>
+                  </label>
                   {['background', 'foreground', 'outline', 'finderOuter', 'finderInner'].map((colorKey) => {
                     const presetColors = COLOR_PRESETS[design.preset] || COLOR_PRESETS.cyber;
                     const val = design.customColors?.[colorKey] || presetColors[colorKey] || '#000000';
+                    const isTransparentBg = colorKey === 'background' && val === 'transparent';
                     return (
-                      <div key={colorKey} className="flex items-center gap-3">
+                      <div key={colorKey} className={`flex items-center gap-3 ${isTransparentBg ? 'opacity-40 pointer-events-none' : ''}`}>
                         <label className="text-xs font-semibold text-gray-400 w-24 flex-shrink-0 capitalize">{colorKey.replace(/([A-Z])/g, ' $1')}</label>
-                        <input type="color" value={val} onChange={(e) => setDesign((prev) => {
+                        <input type="color" value={isTransparentBg ? '#000000' : val} onChange={(e) => setDesign((prev) => {
                           const base = prev.customColors || { background: presetColors.background, foreground: presetColors.foreground, outline: presetColors.outline, finderOuter: presetColors.finderOuter, finderInner: presetColors.finderInner, outlineWidth: presetColors.outlineWidth };
                           return { ...prev, preset: null, customColors: { ...base, [colorKey]: e.target.value } };
                         })} className="w-10 h-8 rounded border border-white/20 cursor-pointer bg-transparent" />
-                        <span className="text-xs font-mono text-gray-500">{val}</span>
+                        <span className="text-xs font-mono text-gray-500">{isTransparentBg ? 'transparent' : val}</span>
                       </div>
                     );
                   })}

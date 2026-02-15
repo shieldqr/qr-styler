@@ -129,6 +129,22 @@ const svg = await generateShapeQR(url, {
 });
 ```
 
+### Transparent Background
+
+Set `background` to `'transparent'` so the QR code inherits the background of its parent container:
+
+```javascript
+const svg = await generateShapeQR(url, {
+  colors: {
+    background: 'transparent',
+    foreground: '#00d4ff',
+    outline: '#00d4ff',
+  },
+});
+```
+
+This renders the QR with no background fill, making it perfect for placing over images, gradients, or any colored surface. Finder pattern gaps are rendered as true cutouts so the parent background shows through correctly.
+
 ## Finder Pattern Customization
 
 ```javascript

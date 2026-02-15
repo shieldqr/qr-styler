@@ -68,7 +68,8 @@ export interface GenerateOptions {
   finderInnerStyle?: 'rounded' | 'square' | 'circle' | 'diamond';
   errorCorrection?: 'L' | 'M' | 'Q' | 'H';
   colors?: {
-    background?: string;
+    /** Background color. Use `'transparent'` for a see-through background. */
+    background?: string | 'transparent';
     foreground?: string;
     outline?: string;
     finderOuter?: string | null;

@@ -828,6 +828,8 @@ export function registerShape(categoryKey, categoryDef, merge = true) {
 function buildSVG(modules, moduleCount, moduleSize, shapeDefinition, opts) {
   const { width, height, viewBox, path, qrArea, bare } = shapeDefinition;
   const colors = opts.colors;
+  const transparentBg = isTransparentColor(colors.background);
+  const bgFill = transparentBg ? 'none' : colors.background;
   const finderOuter = colors.finderOuter || colors.foreground;
   const finderInner = colors.finderInner || colors.foreground;
 
@@ -862,14 +864,18 @@ function buildSVG(modules, moduleCount, moduleSize, shapeDefinition, opts) {
   svg.push('  </defs>');
 
   if (bare) {
-    svg.push(`  <rect x="0" y="0" width="${width}" height="${height}" fill="${colors.background}"/>`);
+    if (!transparentBg) {
+      svg.push(`  <rect x="0" y="0" width="${width}" height="${height}" fill="${bgFill}"/>`);
+    }
   } else {
     const filterAttr = opts.glowEffect ? ' filter="url(#glow)"' : '';
-    svg.push(`  <path d="${path}" fill="${colors.background}"${filterAttr}/>`);
+    svg.push(`  <path d="${path}" fill="${bgFill}"${filterAttr}/>`);
   }
 
   const qzRx = fmt(cellSize * 1.5);
-  svg.push(`  <rect x="${fmt(qrArea.x)}" y="${fmt(qrArea.y)}" width="${fmt(qrArea.size)}" height="${fmt(qrArea.size)}" rx="${qzRx}" ry="${qzRx}" fill="${colors.background}" clip-path="url(#shapeClip)"/>`);
+  if (!transparentBg) {
+    svg.push(`  <rect x="${fmt(qrArea.x)}" y="${fmt(qrArea.y)}" width="${fmt(qrArea.size)}" height="${fmt(qrArea.size)}" rx="${qzRx}" ry="${qzRx}" fill="${bgFill}" clip-path="url(#shapeClip)"/>`);
+  }
 
   svg.push(bare ? '  <g>' : '  <g clip-path="url(#shapeClip)">');
 
@@ -914,8 +920,17 @@ function buildSVG(modules, moduleCount, moduleSize, shapeDefinition, opts) {
       const gap2 = (spaceSz - innerSz) / 2;
       const innerRR = Math.max(spaceRR - gap2, 0);
 
-      svg.push('    ' + renderSolidFinderShape(cxF - outerSz / 2, cyF - outerSz / 2, outerSz, fOuterStyle, finderOuter, outerRR));
-      svg.push('    ' + renderSolidFinderShape(cxF - spaceSz / 2, cyF - spaceSz / 2, spaceSz, fOuterStyle, colors.background, spaceRR));
+      if (transparentBg) {
+        // Use donut/ring shape so the gap is a true cutout (transparent-safe)
+        svg.push('    ' + renderFinderDonut(
+          cxF - outerSz / 2, cyF - outerSz / 2, outerSz, fOuterStyle, outerRR,
+          cxF - spaceSz / 2, cyF - spaceSz / 2, spaceSz, fOuterStyle, spaceRR,
+          finderOuter
+        ));
+      } else {
+        svg.push('    ' + renderSolidFinderShape(cxF - outerSz / 2, cyF - outerSz / 2, outerSz, fOuterStyle, finderOuter, outerRR));
+        svg.push('    ' + renderSolidFinderShape(cxF - spaceSz / 2, cyF - spaceSz / 2, spaceSz, fOuterStyle, colors.background, spaceRR));
+      }
       svg.push('    ' + renderSolidFinderShape(cxF - innerSz / 2, cyF - innerSz / 2, innerSz, fInnerStyle, finderInner, innerRR));
     }
   } else {
@@ -1148,6 +1163,46 @@ function buildSVG(modules, moduleCount, moduleSize, shapeDefinition, opts) {
 
   svg.push('</svg>');
   return svg.join('\n');
+}
+
+// ═════════════════════════════════════════════════
+// Transparent Background Helpers (internal)
+// ═════════════════════════════════════════════════
+
+function isTransparentColor(color) {
+  if (!color || typeof color !== 'string') return false;
+  const c = color.trim().toLowerCase();
+  return c === 'transparent' || c === 'none' || c === 'rgba(0,0,0,0)' || c === 'rgba(0, 0, 0, 0)';
+}
+
+/** Generate a path string for a finder shape (used for donut/ring cutouts). */
+function finderShapePath(x, y, size, style, cornerRadius) {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const r = size / 2;
+
+  switch (style) {
+    case 'circle':
+    case 'dot':
+      return `M${fmt(cx - r)},${fmt(cy)} A${fmt(r)},${fmt(r)} 0 1,1 ${fmt(cx + r)},${fmt(cy)} A${fmt(r)},${fmt(r)} 0 1,1 ${fmt(cx - r)},${fmt(cy)}Z`;
+    case 'rounded':
+    case 'roundedSquare': {
+      const rr = Math.min(cornerRadius !== undefined ? Math.max(cornerRadius, 0) : size * 0.15, size / 2);
+      return `M${fmt(x + rr)},${fmt(y)} L${fmt(x + size - rr)},${fmt(y)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x + size)},${fmt(y + rr)} L${fmt(x + size)},${fmt(y + size - rr)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x + size - rr)},${fmt(y + size)} L${fmt(x + rr)},${fmt(y + size)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x)},${fmt(y + size - rr)} L${fmt(x)},${fmt(y + rr)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x + rr)},${fmt(y)}Z`;
+    }
+    case 'diamond':
+      return `M${fmt(cx)},${fmt(cy - r)} L${fmt(cx + r)},${fmt(cy)} L${fmt(cx)},${fmt(cy + r)} L${fmt(cx - r)},${fmt(cy)}Z`;
+    case 'square':
+    default:
+      return `M${fmt(x)},${fmt(y)} L${fmt(x + size)},${fmt(y)} L${fmt(x + size)},${fmt(y + size)} L${fmt(x)},${fmt(y + size)}Z`;
+  }
+}
+
+/** Render a ring/donut shape (outer minus inner cutout) using fill-rule="evenodd". */
+function renderFinderDonut(outerX, outerY, outerSize, outerStyle, outerRR, holeX, holeY, holeSize, holeStyle, holeRR, fill) {
+  const outer = finderShapePath(outerX, outerY, outerSize, outerStyle, outerRR);
+  const hole = finderShapePath(holeX, holeY, holeSize, holeStyle, holeRR);
+  return `<path d="${outer} ${hole}" fill="${fill}" fill-rule="evenodd"/>`;
 }
 
 // ═════════════════════════════════════════════════

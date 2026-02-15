@@ -48,6 +48,41 @@ function classifyFinderModule(row, col, positions) {
   return null;
 }
 
+function isTransparentColor(color) {
+  if (!color || typeof color !== 'string') return false;
+  const c = color.trim().toLowerCase();
+  return c === 'transparent' || c === 'none' || c === 'rgba(0,0,0,0)' || c === 'rgba(0, 0, 0, 0)';
+}
+
+/** Generate path string for a finder shape (for donut rendering). */
+function finderShapePathData(x, y, size, style, cornerRadius) {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const r = size / 2;
+  switch (style) {
+    case 'circle':
+    case 'dot':
+      return `M${fmt(cx - r)},${fmt(cy)} A${fmt(r)},${fmt(r)} 0 1,1 ${fmt(cx + r)},${fmt(cy)} A${fmt(r)},${fmt(r)} 0 1,1 ${fmt(cx - r)},${fmt(cy)}Z`;
+    case 'rounded':
+    case 'roundedSquare': {
+      const rr = Math.min(cornerRadius !== undefined ? Math.max(cornerRadius, 0) : size * 0.15, size / 2);
+      return `M${fmt(x + rr)},${fmt(y)} L${fmt(x + size - rr)},${fmt(y)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x + size)},${fmt(y + rr)} L${fmt(x + size)},${fmt(y + size - rr)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x + size - rr)},${fmt(y + size)} L${fmt(x + rr)},${fmt(y + size)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x)},${fmt(y + size - rr)} L${fmt(x)},${fmt(y + rr)} A${fmt(rr)},${fmt(rr)} 0 0,1 ${fmt(x + rr)},${fmt(y)}Z`;
+    }
+    case 'diamond':
+      return `M${fmt(cx)},${fmt(cy - r)} L${fmt(cx + r)},${fmt(cy)} L${fmt(cx)},${fmt(cy + r)} L${fmt(cx - r)},${fmt(cy)}Z`;
+    case 'square':
+    default:
+      return `M${fmt(x)},${fmt(y)} L${fmt(x + size)},${fmt(y)} L${fmt(x + size)},${fmt(y + size)} L${fmt(x)},${fmt(y + size)}Z`;
+  }
+}
+
+/** Render a ring/donut (outer minus hole) as a single <path> with fill-rule="evenodd". */
+function renderFinderDonut(outerX, outerY, outerSz, outerStyle, outerRR, holeX, holeY, holeSz, holeStyle, holeRR, fill, keyPrefix) {
+  const outer = finderShapePathData(outerX, outerY, outerSz, outerStyle, outerRR);
+  const hole = finderShapePathData(holeX, holeY, holeSz, holeStyle, holeRR);
+  return <path key={keyPrefix} d={`${outer} ${hole}`} fill={fill} fillRule="evenodd" />;
+}
+
 function renderSolidFinderShape(x, y, size, style, fill, keyPrefix, cornerRadius) {
   const cx = fmt(x + size / 2);
   const cy = fmt(y + size / 2);
@@ -137,6 +172,8 @@ export default function QRPreview({ value, design = {}, className = '', id }) {
       const cellSize = dataSize / moduleCount;
 
       const colors = resolveColors(design);
+      const transparentBg = isTransparentColor(colors.background);
+      const bgFill = transparentBg ? 'none' : colors.background;
       const finderOuter = colors.finderOuter || colors.foreground;
       const finderInner = colors.finderInner || colors.foreground;
       const fillColor = design.gradient ? 'url(#qrGradient)' : colors.foreground;
@@ -183,8 +220,16 @@ export default function QRPreview({ value, design = {}, className = '', id }) {
           const spaceRR = Math.max(outerRR - gap1, 0);
           const gap2 = (spaceSz - innerSz) / 2;
           const innerRR = Math.max(spaceRR - gap2, 0);
-          moduleElements.push(renderSolidFinderShape(cxF - outerSz / 2, cyF - outerSz / 2, outerSz, finderOuterStyle, finderOuter, `fo-${pos.row}-${pos.col}`, outerRR));
-          moduleElements.push(renderSolidFinderShape(cxF - spaceSz / 2, cyF - spaceSz / 2, spaceSz, finderOuterStyle, colors.background, `fs-${pos.row}-${pos.col}`, spaceRR));
+          if (transparentBg) {
+            moduleElements.push(renderFinderDonut(
+              cxF - outerSz / 2, cyF - outerSz / 2, outerSz, finderOuterStyle, outerRR,
+              cxF - spaceSz / 2, cyF - spaceSz / 2, spaceSz, finderOuterStyle, spaceRR,
+              finderOuter, `fr-${pos.row}-${pos.col}`
+            ));
+          } else {
+            moduleElements.push(renderSolidFinderShape(cxF - outerSz / 2, cyF - outerSz / 2, outerSz, finderOuterStyle, finderOuter, `fo-${pos.row}-${pos.col}`, outerRR));
+            moduleElements.push(renderSolidFinderShape(cxF - spaceSz / 2, cyF - spaceSz / 2, spaceSz, finderOuterStyle, colors.background, `fs-${pos.row}-${pos.col}`, spaceRR));
+          }
           moduleElements.push(renderSolidFinderShape(cxF - innerSz / 2, cyF - innerSz / 2, innerSz, finderInnerStyle, finderInner, `fi-${pos.row}-${pos.col}`, innerRR));
         }
       } else {
@@ -331,7 +376,7 @@ export default function QRPreview({ value, design = {}, className = '', id }) {
       const insetSx = ((width - decoShieldInset * 2) / width).toFixed(4);
       const insetSy = ((height - decoShieldInset * 2) / height).toFixed(4);
 
-      return { viewBox, width, height, path, qrArea, colors, moduleElements, decorativeElements: bare ? [] : decorativeElements, glowEffect: bare ? false : glowEffect, innerBorder: bare ? false : innerBorder, gradient: design.gradient, glowColor: colors.outline, innerBorderOffset: 8, decorativeOpacity: design.decorativeOpacity ?? 0.25, decoShieldInset, insetSx, insetSy, bare: !!bare };
+      return { viewBox, width, height, path, qrArea, colors, bgFill, transparentBg, moduleElements, decorativeElements: bare ? [] : decorativeElements, glowEffect: bare ? false : glowEffect, innerBorder: bare ? false : innerBorder, gradient: design.gradient, glowColor: colors.outline, innerBorderOffset: 8, decorativeOpacity: design.decorativeOpacity ?? 0.25, decoShieldInset, insetSx, insetSy, bare: !!bare };
     } catch (err) {
       console.error('QRPreview error:', err);
       return null;
@@ -346,7 +391,7 @@ export default function QRPreview({ value, design = {}, className = '', id }) {
     );
   }
 
-  const { viewBox, width, height, path, qrArea, colors, moduleElements, decorativeElements, glowEffect, innerBorder, gradient, glowColor, innerBorderOffset, decorativeOpacity, decoShieldInset, insetSx, insetSy, bare } = svgContent;
+  const { viewBox, width, height, path, qrArea, colors, bgFill, transparentBg, moduleElements, decorativeElements, glowEffect, innerBorder, gradient, glowColor, innerBorderOffset, decorativeOpacity, decoShieldInset, insetSx, insetSy, bare } = svgContent;
   const off = innerBorderOffset;
   const sx = ((width - off * 2) / width).toFixed(4);
   const sy = ((height - off * 2) / height).toFixed(4);
@@ -370,12 +415,14 @@ export default function QRPreview({ value, design = {}, className = '', id }) {
         </defs>
 
         {bare ? (
-          <rect x="0" y="0" width={width} height={height} fill={colors.background} />
+          !transparentBg && <rect x="0" y="0" width={width} height={height} fill={bgFill} />
         ) : (
-          <path d={path} fill={colors.background} {...(glowEffect ? { filter: `url(#${uid}-glow)` } : {})} />
+          <path d={path} fill={bgFill} {...(glowEffect ? { filter: `url(#${uid}-glow)` } : {})} />
         )}
 
-        <rect x={qrArea.x} y={qrArea.y} width={qrArea.size} height={qrArea.size} rx={fmt(qrArea.size * 0.02)} ry={fmt(qrArea.size * 0.02)} fill={colors.background} {...(!bare ? { clipPath: `url(#${uid}-clip)` } : {})} />
+        {!transparentBg && (
+          <rect x={qrArea.x} y={qrArea.y} width={qrArea.size} height={qrArea.size} rx={fmt(qrArea.size * 0.02)} ry={fmt(qrArea.size * 0.02)} fill={bgFill} {...(!bare ? { clipPath: `url(#${uid}-clip)` } : {})} />
+        )}
 
         <g {...(!bare ? { clipPath: `url(#${uid}-clip)` } : {})}>{moduleElements}</g>
 
